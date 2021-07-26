@@ -91,11 +91,33 @@ BEGIN
 END;
 
 GO
-
-EXEC ADD_CUSTOMER @pcustid = 1, @pcustname = 'testdude2';
-
-EXEC ADD_CUSTOMER @pcustid = 500, @pcustname = 'testdude3';
+EXEC ADD_CUSTOMER @pcustid = 1, @pcustname = 'testdude1';
+EXEC ADD_CUSTOMER @pcustid = 3, @pcustname = 'testdude2';
+EXEC ADD_CUSTOMER @pcustid = 5, @pcustname = 'testdude3';
+EXEC ADD_CUSTOMER @pcustid = 499, @pcustname = 'testdude4';
 
 select * from customer;
 
 
+-- DELETE_ALL_CUSTOMERS STORED PROCEDURE
+
+IF OBJECT_ID('DELETE_ALL_CUSTOMERS') IS NOT NULL
+DROP PROCEDURE DELETE_ALL_CUSTOMERS;
+GO
+
+CREATE PROCEDURE DELETE_ALL_CUSTOMERS AS
+
+BEGIN
+    DELETE FROM Customer;
+    DECLARE @ROWSDELETED INT = @@ROWCOUNT;
+    SELECT @ROWSDELETED
+    BEGIN
+        DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+        THROW 50000, @ERRORMESSAGE, 1
+    END 
+
+END
+GO
+
+EXEC DELETE_ALL_CUSTOMERS;
+select * from customer;
