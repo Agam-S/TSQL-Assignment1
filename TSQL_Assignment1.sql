@@ -256,4 +256,48 @@ END;
 
 EXEC UPD_CUST_SALESYTD @pCUSTID = 998, @pAMT = 10;
 
-SELECT * from CUSTOMER
+SELECT * from CUSTOMER;
+
+-- GET_PROD_STRING PROCEDURE
+IF OBJECT_ID('GET_PROD_STRING') IS NOT NULL
+DROP PROCEDURE GET_PROD_STRING;
+GO
+
+CREATE PROCEDURE GET_PROD_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUT AS
+
+BEGIN
+    BEGIN TRY
+    DECLARE @PPRODNAME NVARCHAR(100);
+    DECLARE @PSELLING_PRICE MONEY;
+    DECLARE @PSYTD MONEY;
+
+    SELECT @PPRODNAME = PRODNAME, @PSELLING_PRICE = SELLING_PRICE, @PSYTD = SALES_YTD
+    FROM PRODUCT WHERE PRODID = @pprodid;
+    
+    SET @pReturnString = CONCAT(' Prodid: ', @pprodid, ' Name: ', @pprodname,  ' Price: ', @PSELLING_PRICE, ' SalesYTD: ' , @PSYTD);
+    END TRY
+    BEGIN CATCH
+        if ERROR_NUMBER() = 2627
+            THROW 50090, 'Product ID not found', 1
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+    END CATCH;
+
+END;
+
+GO 
+
+INSERT INTO PRODUCT (Prodid, ProdName, Selling_Price, sales_ytd) VALUES (999, 'Ultimate Gaming PC (full set) ', 999.99 , 99999.99)
+
+
+BEGIN
+    DECLARE @ProRetStr NVARCHAR(1000);
+    SET @ProRetStr = 'original value';
+
+    EXEC GET_PROD_STRING @pprodid = 999, @pReturnString = @ProRetStr OUT;
+
+    print(@ProRetStr);
+END;
