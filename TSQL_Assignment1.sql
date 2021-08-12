@@ -263,9 +263,10 @@ IF OBJECT_ID('GET_PROD_STRING') IS NOT NULL
 DROP PROCEDURE GET_PROD_STRING;
 GO
 
-CREATE PROCEDURE GET_PROD_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUT AS
 
+CREATE PROCEDURE GET_PROD_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUT AS
 BEGIN
+
     BEGIN TRY
     DECLARE @PPRODNAME NVARCHAR(100);
     DECLARE @PSELLING_PRICE MONEY;
@@ -291,7 +292,7 @@ END;
 GO 
 
 INSERT INTO PRODUCT (Prodid, ProdName, Selling_Price, sales_ytd) VALUES (999, 'Ultimate Gaming PC (full set) ', 999.99 , 99999.99)
-
+INSERT INTO PRODUCT (Prodid, ProdName, Selling_Price, sales_ytd) VALUES (998, 'Charger', 10.00 , 10.00)
 
 BEGIN
     DECLARE @ProRetStr NVARCHAR(1000);
@@ -299,5 +300,64 @@ BEGIN
 
     EXEC GET_PROD_STRING @pprodid = 999, @pReturnString = @ProRetStr OUT;
 
-    print(@ProRetStr);
+    print(@ProRetStr)
 END;
+
+--  UPD_PROD_SALESYTD PROCEDURE
+
+IF OBJECT_ID('UPD_PROD_SALESYTD') IS NOT NULL
+DROP PROCEDURE UPD_PROD_SALESYTD;
+GO
+
+CREATE PROCEDURE UPD_PROD_SALESYTD @pprodid INT, @pamt MONEY AS
+BEGIN
+    BEGIN TRY
+    IF @pamt < -999.99 OR @pamt > 999.99
+            THROW 50110, 'Amount out of range', 1
+        
+        UPDATE PRODUCT SET SALES_YTD = SALES_YTD + @pamt  WHERE PRODID = @pprodid;
+    END TRY
+    BEGIN CATCH
+         if ERROR_NUMBER() = 2627
+            THROW 50100, 'Product ID not found', 1
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+
+    END CATCH
+
+END;
+
+-- select * from PRODUCT
+EXEC UPD_PROD_SALESYTD @pprodid = 998, @pamt = 10;
+
+-- UPD_CUSTOMER_STATUS PROCEDURE
+
+IF OBJECT_ID('UPD_CUSTOMER_STATUS') IS NOT NULL
+DROP PROCEDURE UPD_CUSTOMER_STATUS;
+GO
+
+CREATE PROCEDURE UPD_CUSTOMER_STATUS @pcustid INT, @pstatus NVARCHAR(7) AS
+
+BEGIN
+    BEGIN TRY
+    IF @pstatus <> 'OK' AND @pstatus <> 'SUSPEND'
+        THROW 50130, 'Invalid Status value', 1
+
+    UPDATE CUSTOMER SET STATUS = @pstatus WHERE CUSTID = @pcustid;
+    
+    IF @@ROWCOUNT = 0
+            THROW 50120, 'Customer ID not found', 1
+    END TRY
+
+    BEGIN CATCH
+        DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+        THROW 50000, @ERRORMESSAGE, 1
+    END CATCH
+END;
+select * from customer;
+
+
+EXEC UPD_CUSTOMER_STATUS @pcustid = 998, @pstatus = 'OK'
