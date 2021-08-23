@@ -1,3 +1,8 @@
+
+-- create database TestTSQL
+
+-- USE TestTSQL;
+
 IF OBJECT_ID('Sale') IS NOT NULL
 DROP TABLE SALE;
 
@@ -203,7 +208,7 @@ BEGIN
     SET @pReturnString = CONCAT(' Custid: ', @pCUSTID, ' Name: ', @CNAME, ' Status: ', @STATUS, ' SalesYTD: ', @SYTD);
     END TRY
     BEGIN CATCH
-        if ERROR_NUMBER() = 2627
+        if @@ROWCOUNT = 0
             THROW 50060, 'Customer ID not found', 1
         ELSE
             BEGIN
@@ -243,7 +248,7 @@ BEGIN
         UPDATE CUSTOMER SET SALES_YTD = SALES_YTD + @pAMT   WHERE CUSTID = @pCUSTID;
     END TRY
     BEGIN CATCH
-         if ERROR_NUMBER() = 2627
+         if @@ROWCOUNT = 0
             THROW 50070, 'Customer ID not found', 1
         ELSE
             BEGIN
@@ -280,7 +285,7 @@ BEGIN
     SET @pReturnString = CONCAT(' Prodid: ', @pprodid, ' Name: ', @pprodname,  ' Price: ', @PSELLING_PRICE, ' SalesYTD: ' , @PSYTD);
     END TRY
     BEGIN CATCH
-        if ERROR_NUMBER() = 2627
+        if @@ROWCOUNT = 0
             THROW 50090, 'Product ID not found', 1
         ELSE
             BEGIN
@@ -320,7 +325,7 @@ BEGIN
         UPDATE PRODUCT SET SALES_YTD = SALES_YTD + @pamt  WHERE PRODID = @pprodid;
     END TRY
     BEGIN CATCH
-         if ERROR_NUMBER() = 2627
+         if @@ROWCOUNT = 0
             THROW 50100, 'Product ID not found', 1
         ELSE
             BEGIN
@@ -477,10 +482,10 @@ GO
 CREATE PROCEDURE GET_ALL_CUSTOMERS @POUTCUR CURSOR VARYING OUTPUT AS
 BEGIN
     BEGIN TRY
-        -- SET @POUTCUR = CURSOR
+        SET @POUTCUR = CURSOR FOR
     
-        -- SELECT * FROM CUSTOMER
-        -- OPEN @POUTCUR
+        SELECT * FROM CUSTOMER
+        OPEN @POUTCUR
 
     END TRY
     BEGIN CATCH
@@ -500,10 +505,10 @@ GO
 CREATE PROCEDURE GET_ALL_PRODUCTS @POUTCUR CURSOR VARYING OUTPUT AS
 BEGIN
     BEGIN TRY
-        -- SET @POUTCUR = CURSOR
+        SET @POUTCUR = CURSOR FOR
         
-        -- SELECT * FROM PRODUCT
-        -- OPEN @POUTCUR
+        SELECT * FROM PRODUCT
+        OPEN @POUTCUR
 
     END TRY
     BEGIN CATCH
@@ -539,7 +544,7 @@ BEGIN
     END TRY
     BEGIN CATCH
 
-        IF ERROR_NUMBER() = 2627
+        if @@ROWCOUNT = 0
             THROW 50180, 'Duplicate location ID', 1
         ELSE IF ERROR_NUMBER() IN (50190, 50200, 50210, 50220)
             THROW
@@ -558,18 +563,17 @@ EXEC ADD_LOCATION @ploccode = "ABC12", @pminqty = 9, @pmaxqty = 9;
 
 SELECT * FROM LOCATION;
 
-
 --ADD_COMPLEX_SALE
 
 IF OBJECT_ID('ADD_COMPLEX_SALE') IS NOT NULL
     DROP PROCEDURE ADD_COMPLEX_SALE
-
 GO
 
-CREATE PROCEDURE ADD_COMPLEX_SALE @pcustid INT, @pprodid INT, @pqty INT, @pdate NVARCHAR(MAX) AS
+CREATE PROCEDURE ADD_COMPLEX_SALE @pcustid INT, @pprodid INT, @pqty INT, @pdate NVARCHAR(10) AS
 BEGIN
     DECLARE @price MONEY
     DECLARE @ytdValue MONEY
+    
     BEGIN TRY
 
         IF @pqty < 1 OR @pqty > 999
@@ -585,8 +589,11 @@ BEGIN
 
         SELECT @price = SELLING_PRICE FROM PRODUCT WHERE PRODID = @pprodid;
 
-        INSERT INTO SALE (SALEID, CUSTID, PRODID, QTY, PRICE, SALEDATE) VALUES
-        (NEXT VALUE FOR SALE_SEQ, @pcustid, @pprodid, @pqty, @price, @pdate);
+        DECLARE @SALEIDSEQ BIGINT;
+        SELECT @SALEIDSEQ = NEXT VALUE FOR SALE_SEQ;
+
+        INSERT INTO SALE(SALEID, CUSTID, PRODID, QTY, PRICE, SALEDATE) 
+        VALUES (@SALEIDSEQ, @pcustid, @pprodid, @pqty, @price, @pdate);
 
         SELECT @price = SELLING_PRICE
         FROM PRODUCT
@@ -608,7 +615,6 @@ BEGIN
 
     END CATCH
 END
-
 GO
 
 SELECT * FROM SALE
@@ -623,9 +629,9 @@ GO
 CREATE PROCEDURE GET_ALL_SALES @POUTCUR CURSOR VARYING OUTPUT AS
 BEGIN
     BEGIN TRY
-    --     SET @POUTCUR = CURSOR
-    --     SELECT * FROM SALE
-    --     OPEN @POUTCUR
+        SET @POUTCUR = CURSOR FOR
+        SELECT * FROM SALE
+        OPEN @POUTCUR
 
     END TRY
     BEGIN CATCH
@@ -656,9 +662,8 @@ BEGIN
 END;
 GO
 
-
-EXEC ADD_COMPLEX_SALE @pcustid = 998, @pprodid = 999, @pqty = 1, @pdate = '2021/08/12'
 --DELETE_SALE
+-- select * from SALE
 
 IF OBJECT_ID('DELETE_SALE') IS NOT NULL
     DROP PROCEDURE DELETE_SALE
@@ -758,7 +763,7 @@ END
 GO
 
 EXEC ADD_CUSTOMER @pcustid = 1, @pcustname = 'agam';
-EXEC ADD_COMPLEX_SALE @pcustid = 998, @pprodid = 999, @pqty = 1, @pdate = '2021/08/12'
+-- EXEC ADD_COMPLEX_SALE @pcustid = 998, @pprodid = 999, @pqty = 1, @pdate = '2021/08/12'
 SELECT * FROM CUSTOMER
 SELECT * FROM SALE
 
